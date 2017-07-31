@@ -5,6 +5,7 @@ ClipImgUtile = (function () {
     function getStyleSheet(element) {
         return element.sheet || element.styleSheet;
     }
+
     /**
      * 创建dom节点
      * @param elementName
@@ -1086,17 +1087,18 @@ ClipImgUtile = (function () {
 });
 
 function ClipImg(options) {
-    this.width = this.cutW  =  options.width;
-    this.height = this.cutH =  options.height;
+    this.width = this.cutW = options.width;
+    this.height = this.cutH = options.height;
     this.fileId = options.fileId;
     this.$id = document.getElementById(options.fileId);
     this.$showId = document.getElementById(options.showId);
     this.targetDensitydpi = options.targetDensitydpi;
     this.format = options.format;
     this.dealFun = options.dealFun;
-    this.imgType;
+    this.imgType = null;
+    self.orientation = 1;
     this.imgW = this.imgH = this.maxX = this.maxY = this.rotate = 0;
-    this.scale = 1 ;
+    this.scale = 1;
     this.utile = ClipImgUtile();
     this.init();
 }
@@ -1124,25 +1126,89 @@ ClipImg.prototype = {
             self = this,
             width = self.width,
             height = self.height,
+            // rotate = self.rotate,
             dealFun = self.dealFun,
             utile = self.utile,
             canvas = utile.createElement('canvas', {width: width, height: height}),
             ctx = canvas.getContext('2d'),
             img = document.querySelector('.ClipImgTap img'),
-            imgW = self.imgW,
-            imgH = self.imgH,
+            // imgW = self.imgW,
+            // imgH = self.imgH,
             transform = !img.style.transform ? [0, 0, 0] : (img.style.transform.split('('))[1].split(',').map(function (item) {
                 return parseInt(item);
             }),
-            x = (imgW - width) / 2 - transform[0] / self.targetDensitydpi,
-            y = (imgH - height) / 2 - transform[1] / self.targetDensitydpi;
-        ctx.drawImage(img, x, y, width, height, 0, 0, width, height);
+            // x = (imgW - width) / 2 - transform[0] / targetDensitydpi,
+            // y = (imgH - height) / 2 - transform[1] / targetDensitydpi,
+            params = self.ctxParams({moveX: transform[0], moveY: transform[1]});
+        alert(JSON.stringify(params)+self.orientation);
+        params.rotate && ctx.rotate(params.rotate);
+        ctx.drawImage(img, params.x, params.y, params.cutW, params.cutH, 0, 0, params.drawW, params.drawW);
         cutImgDateUrl = canvas.toDataURL(self.imgType);
         cutImgBlob = utile.dataURLtoBlob(cutImgDateUrl);
         self.$showId.src = cutImgDateUrl;
         self.close();
         dealFun({status: 2, blob: cutImgBlob, base64: cutImgDateUrl});
     },
+    ctxParams: function (opts) {
+        var self = this,
+            imgW = self.imgW,
+            rotate = self.rotate,
+            imgH = self.imgH,
+            cutW = self.width,
+            cutH = self.height,
+            drawW = cutW,
+            drawH = cutH,
+            targetDensitydpi = self.targetDensitydpi,
+            x = (imgW - cutW) / 2 - opts.moveX / targetDensitydpi,
+            y = (imgH - cutH) / 2 - opts.moveY / targetDensitydpi,
+            aCutW = cutW,
+            ax = x;
+        switch (self.orientation) {
+            case 1:
+                break;
+            case 3:
+                x = imgW-x;
+                y = imgH-y;
+                drawW = -drawW;
+                drawH = -drawH;
+                cutW = -cutW;
+                cutH = -cutH;
+                rotate = 180 * Math.PI / 180;
+                break;
+            case 6:
+                x = y;
+                y = ax;
+                cutW = cutH;
+                drawW = cutH;
+                drawH = -aCutW;
+                cutH = aCutW;
+                rotate = 90 * Math.PI / 180;
+                break;
+            case 8:
+                x = y;
+                y = ax;
+                cutW = cutH;
+                drawW = -cutH;
+                drawH = aCutW;
+                cutH = aCutW;
+                rotate = -90 * Math.PI / 180;
+                break;
+        }
+        return {
+            rotate: rotate,
+            x: x,
+            y: y,
+            drawW: drawW,
+            drawH: drawH,
+            cutW: cutW,
+            cutH: cutH
+        }
+    },
+
+    /**
+     * 增加裁剪监听
+     * @param el
+     */
     addCut: function (el) {
         el.addEventListener('click', function () {
             this.cut();
@@ -1255,8 +1321,8 @@ ClipImg.prototype = {
                 loadImgW = loadImg.width,
                 loadImgH = loadImg.height;
             EXIF.getData(f, function () {
-                var orientation = EXIF.getTag(this, "Orientation") || 1;
-                self.dealImgBearing(orientation, loadImgW, loadImgH, url);
+                self.orientation = EXIF.getTag(this, "Orientation") || 1;
+                self.dealImgBearing(self.orientation, loadImgW, loadImgH, url);
             });
         };
         loadImg.onerror = function () {
@@ -1281,17 +1347,15 @@ ClipImg.prototype = {
             case 1:
                 break;
             case 3:
-                rotate = 180 * Math.PI / 180;
+
                 break;
             case 6:
                 imgW = height;
                 imgH = width;
-                rotate = 90 * Math.PI / 180;
                 break;
             case 8:
                 imgW = height;
                 imgH = width;
-                rotate = -90 * Math.PI / 180;
                 break;
         }
         self.imgW = imgW;
