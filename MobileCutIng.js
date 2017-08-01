@@ -1142,7 +1142,7 @@ ClipImg.prototype = {
             params = self.ctxParams({moveX: transform[0], moveY: transform[1]});
         alert(JSON.stringify(params)+self.orientation);
         params.rotate && ctx.rotate(params.rotate);
-        ctx.drawImage(img, params.x, params.y, params.cutW, params.cutH, 0, 0, params.drawW, params.drawW);
+        ctx.drawImage(img, params.x, params.y, params.cutW, params.cutH, 0, 0, params.drawW, params.drawH);
         cutImgDateUrl = canvas.toDataURL(self.imgType);
         cutImgBlob = utile.dataURLtoBlob(cutImgDateUrl);
         self.$showId.src = cutImgDateUrl;
@@ -1164,8 +1164,8 @@ ClipImg.prototype = {
             aCutW = cutW,
             ax = x;
         switch (self.orientation) {
-            case 1:
-                break;
+            // case 1:
+            //     break;
             case 3:
                 x = imgW-x;
                 y = imgH-y;
@@ -1176,21 +1176,22 @@ ClipImg.prototype = {
                 rotate = 180 * Math.PI / 180;
                 break;
             case 6:
-                x = y;
-                y = ax;
+               //前面已经反向了 imgW，imgH
+                x= y;
+                y= imgW - cutH - ax;
                 cutW = cutH;
-                drawW = cutH;
-                drawH = -aCutW;
                 cutH = aCutW;
+                drawW = drawH;
+                drawH = -aCutW;
                 rotate = 90 * Math.PI / 180;
                 break;
             case 8:
-                x = y;
-                y = ax;
+                x= imgH - cutH - y;
+                y= ax;
                 cutW = cutH;
-                drawW = -cutH;
-                drawH = aCutW;
                 cutH = aCutW;
+                drawW = -drawH;
+                drawH = aCutW;
                 rotate = -90 * Math.PI / 180;
                 break;
         }
@@ -1338,10 +1339,8 @@ ClipImg.prototype = {
      * @param url
      */
     dealImgBearing: function (orientation, width, height, url) {
-        var rotate = 0,
-            self = this,
+        var self = this,
             imgW = width,
-            scale = 1,
             imgH = height;
         switch (orientation) {
             case 1:
@@ -1359,7 +1358,6 @@ ClipImg.prototype = {
                 break;
         }
         self.imgW = imgW;
-        self.rotate = rotate;
         self.imgH = imgH;
         self.showVess(url);
     },
