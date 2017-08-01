@@ -1101,6 +1101,7 @@ function ClipImg(options) {
     this.scale = 1;
     this.utile = ClipImgUtile();
     this.init();
+
 }
 
 ClipImg.prototype = {
@@ -1140,7 +1141,7 @@ ClipImg.prototype = {
             // x = (imgW - width) / 2 - transform[0] / targetDensitydpi,
             // y = (imgH - height) / 2 - transform[1] / targetDensitydpi,
             params = self.ctxParams({moveX: transform[0], moveY: transform[1]});
-        alert(JSON.stringify(params)+self.orientation);
+        // alert(JSON.stringify(params)+self.orientation);
         params.rotate && ctx.rotate(params.rotate);
         ctx.drawImage(img, params.x, params.y, params.cutW, params.cutH, 0, 0, params.drawW, params.drawH);
         cutImgDateUrl = canvas.toDataURL(self.imgType);
@@ -1167,8 +1168,8 @@ ClipImg.prototype = {
             // case 1:
             //     break;
             case 3:
-                x = imgW-x;
-                y = imgH-y;
+                x = imgW - x;
+                y = imgH - y;
                 drawW = -drawW;
                 drawH = -drawH;
                 cutW = -cutW;
@@ -1176,9 +1177,9 @@ ClipImg.prototype = {
                 rotate = 180 * Math.PI / 180;
                 break;
             case 6:
-               //前面已经反向了 imgW，imgH
-                x= y;
-                y= imgW - cutH - ax;
+                //前面已经反向了 imgW，imgH
+                x = y;
+                y = imgW - cutH - ax;
                 cutW = cutH;
                 cutH = aCutW;
                 drawW = drawH;
@@ -1186,8 +1187,8 @@ ClipImg.prototype = {
                 rotate = 90 * Math.PI / 180;
                 break;
             case 8:
-                x= imgH - cutH - y;
-                y= ax;
+                x = imgH - cutH - y;
+                y = ax;
                 cutW = cutH;
                 cutH = aCutW;
                 drawW = -drawH;
@@ -1232,12 +1233,17 @@ ClipImg.prototype = {
         el.addEventListener('touchmove', function (e) {
             e.preventDefault();
             e.stopPropagation();
-            var touchOne = e.targetTouches[0];
-            x2 = touchOne.pageX;
-            y2 = touchOne.pageY;
-            var movex = ~~(x2 - x1) + transList[0];
-            var movey = ~~(y2 - y1) + transList[1];
-            self.move(movex, movey);
+            var lenght = e.targetTouches.length;
+            if (lenght == 1) {  //拖拽
+                var touchOne = e.targetTouches[0];
+                x2 = touchOne.pageX;
+                y2 = touchOne.pageY;
+                var movex = ~~(x2 - x1) + transList[0];
+                var movey = ~~(y2 - y1) + transList[1];
+                self.move(movex, movey);
+            }else if(lenght == 2){
+
+            }
         });
         el.addEventListener('touchend', function (e) {
             var flag = false;
@@ -1405,3 +1411,7 @@ ClipImg.prototype = {
         document.body.appendChild(fragmente);
     }
 };
+
+if(module){
+    module.exports = ClipImg;
+}
