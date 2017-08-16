@@ -1,7 +1,7 @@
 /**
  * Created by fynnpeng on 2017/7/28.
  */
-ClipImgUtile = (function () {
+var ClipImgUtile = (function () {
     function getStyleSheet(element) {
         return element.sheet || element.styleSheet;
     }
@@ -1150,6 +1150,11 @@ ClipImg.prototype = {
         self.close();
         dealFun({status: 2, blob: cutImgBlob, base64: cutImgDateUrl});
     },
+    /**
+     * 最后画画的参数
+     * @param opts
+     * @returns {{rotate: number, x: number, y: number, drawW: *, drawH: (*|number|string|Number), cutW: *, cutH: (*|number|string|Number)}}
+     */
     ctxParams: function (opts) {
         var self = this,
             imgW = self.imgW,
@@ -1216,6 +1221,8 @@ ClipImg.prototype = {
             this.cut();
         }.bind(this))
     },
+
+
     /**
      * 移动裁剪位置
      * @param el
