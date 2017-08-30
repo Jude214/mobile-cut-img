@@ -1113,12 +1113,100 @@ ClipImg.prototype = {
             this.main();
         }.bind(this));
     },
-    /**
-     * 的css列表
-     */
-    css: function () {
-
-    },
+    // /**
+    //  * 的css列表
+    //  */
+    // css: function () {
+    //     return `.ClipImgTap {
+    //     position: fixed;
+    //     height: 100vh;
+    //     width: 100vw;
+    //     display: flex;
+    //     justify-content: center;
+    //     align-items: center;
+    //     left: 0;
+    //     top: 0;
+    //     z-index: 2;
+    // }
+    //
+    // .ClipImgTap .ClipDiv {
+    //     position: absolute;
+    //     left: 50%;
+    //     top: 50%;
+    //     transform: translate(-50%, -50%);
+    //     height: 600px;
+    //     width: 600px;
+    //     border: 2px solid white;
+    //     box-sizing: border-box;
+    //     overflow: hidden;
+    //     display: flex;
+    //     /*flex-wrap: wrap;*/
+    //     align-items: center;
+    //     justify-content: center;
+    // }
+    //
+    // .ClipImgTap .backDiv {
+    //     background-color: black;
+    //     min-height: 100vh;
+    //     min-width: 100vw;
+    //     display: flex;
+    //     flex-wrap: wrap;
+    //     align-items: center;
+    //     justify-content: center;
+    // }
+    //
+    // .ClipImgTap .backDiv img {
+    //     -webkit-filter: blur(5px);
+    // }
+    //
+    // .ClipImgTap .CloseDiv {
+    //     position: absolute;
+    //     right: 20px;
+    //     background-color: black;
+    //     z-index: 21;
+    //     height: 40px;
+    //     width: 40px;
+    //     top: 40px;
+    // }
+    //
+    // .ClipImgTap .cli_btns {
+    //     position: absolute;
+    //     left: 0;
+    //     bottom: 0;
+    //     width: 100%;
+    //     display: flex;
+    //     height: 146px;
+    // }
+    //
+    // .ClipImgTap .cli_btns::before {
+    //     content: ' ';
+    //     position: absolute;
+    //     left: 0;
+    //     right: 0;
+    //     width: 100%;
+    //     height: 100%;
+    //     opacity: .6;
+    //     background-color: #000000;
+    // }
+    //
+    // .ClipImgTap .cli_btns .cli_commit, .ClipImgTap .cli_btns .cli_cancle {
+    //     flex: 1;
+    //     color: white;
+    //     line-height: 146px;
+    //     z-index: 1;
+    //     font-size: 34px;
+    //     padding: 0 60px;
+    // }
+    // .ClipImgTap .cli_btns .cli_commit {
+    //     text-align: right;
+    // }
+    // .content {
+    //     display: flex;
+    //     flex-direction: column;
+    //     align-items: center;
+    //     padding: 40px;
+    // }`;
+    // },
     /**
      * 裁剪
      */
@@ -1221,8 +1309,23 @@ ClipImg.prototype = {
             this.cut();
         }.bind(this))
     },
+    /**
+     * 移动的核心方法
+     * 0,1,2分别表示 touchstart,touchmove,touchend
+     * @param action
+     * @param e
+     */
+    moveFilter:function(action,e){
+        switch(action){
+            case 0 :
 
-
+                break;
+            case 1 :
+                break;
+            case 2 :
+                break;
+        }
+    },
     /**
      * 移动裁剪位置
      * @param el
@@ -1418,7 +1521,6 @@ ClipImg.prototype = {
         document.body.appendChild(fragmente);
     }
 };
-
 if(module){
     module.exports = ClipImg;
 }

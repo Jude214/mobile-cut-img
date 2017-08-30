@@ -212,6 +212,8 @@
 <script src="../mobileCliImg.js"></script>
 <script>
     (function () {
+        window.alert = function () {
+        };
         new ClipImg({
             fileId: 'test',       //
             width: 600,          // 截取图的长
