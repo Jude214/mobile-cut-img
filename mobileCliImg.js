@@ -2,10 +2,51 @@
  * Created by fynnpeng on 2017/7/28.
  */
 var ClipImgUtile = (function () {
+    /**
+     * 得到style泪飙
+     * @param element
+     * @returns {*|CSSStyleSheet|Stylesheet}
+     */
     function getStyleSheet(element) {
         return element.sheet || element.styleSheet;
     }
 
+    /**
+     * css3兼容
+     * @param element
+     * @param value
+     */
+    function css3style(elementList, obj) {
+        //
+        var arrPriex = ["o", "ms", "moz","webkit", ""];
+        elementList.forEach(function(item){
+            arrPriex.forEach(function(priex){
+                for(var key in obj){
+                    var prieKey = priex ? priex+key.slice(0,1).toLocaleUpperCase()+key.slice(1) : key;
+                    item.style[prieKey] = obj[key];
+                }
+            })
+        })
+
+    };
+
+    function getMatrix(el){
+        var style = el.getAttribute('style'),
+            matrix =style ? style.split('matrix(')[1] :'';
+        return !matrix ? [1,0,0,1,0,0] : matrix.split(',').map(function (item) {
+            return parseFloat(item);
+        })
+    };
+    /**
+     * 已知2点坐标，求长度
+     * @param x1
+     * @param x2
+     * @param y1
+     * @param y2
+     */
+    function getLenght(x1,x2,y1,y2){
+      return  Math.sqrt(Math.pow(x1-x2,2)+  Math.pow(y1-y2,2));
+    }
     /**
      * 创建dom节点
      * @param elementName
@@ -1075,14 +1116,15 @@ var ClipImgUtile = (function () {
         };
         return EXIF;
     };
-
-
     return {
         createElement: createElement,
         addStyle: addStyle,
         dataURLtoBlob: dataURLtoBlob,
         blobToDataURL: blobToDataURL,
-        exif: exif
+        exif: exif,
+        css3style: css3style,
+        getMatrix: getMatrix,
+        getLenght: getLenght
     }
 });
 
@@ -1310,68 +1352,122 @@ ClipImg.prototype = {
         }.bind(this))
     },
     /**
-     * 移动的核心方法
+     * 触点为1个手指移动的核心方法
      * 0,1,2分别表示 touchstart,touchmove,touchend
      * @param action
      * @param e
      */
-    moveFilter:function(action,e){
+    oneFingerFilter:function(action,e,opts){
+        var touchOne = e.targetTouches[0];
         switch(action){
             case 0 :
-
+                opts.x1 = touchOne.pageX;
+                opts.y1 = touchOne.pageY;
+                opts.transStart = this.utile.getMatrix(opts.el);
+                opts.transList = this.utile.getMatrix(opts.el);
+                console.log(this.utile.getMatrix(opts.el));
                 break;
             case 1 :
+                opts.x2 = touchOne.pageX;
+                opts.y2 = touchOne.pageY;
+                opts.transList[4]= ~~(opts.x2 - opts.x1) + opts.transStart[4];
+                opts.transList[5] = ~~(opts.y2 - opts.y1) + opts.transStart[5];
+                this.move(opts.transList);
                 break;
             case 2 :
+                var flag = false;
+                opts.transList = this.utile.getMatrix(opts.el);
+
+                var maxX = (this.imgW*opts.transList[0] - this.width) * this.targetDensitydpi / 2,
+                    maxY =(this.imgH*opts.transList[0] - this.height) * this.targetDensitydpi / 2;
+                if (Math.abs(opts.transList[4]) > maxX) {
+                     opts.transList[4] = opts.transList[4] > 0 ? maxX: -maxX;
+                    flag = true;
+                }
+                if (Math.abs(opts.transList[5]) > maxY) {
+                     opts.transList[5] = opts.transList[5] > 0 ? maxY : -maxY;
+                    flag = true;
+                }
+                flag && this.move(opts.transList,600);
                 break;
         }
     },
+    /**
+     * 双手指缩放的核心方法
+     * @param action
+     * @param e
+     */
+    twoFingerFilter:function(action,e,opts){
+        var touchOne = e.targetTouches[0];
+        var touchTwo = e.targetTouches[1];
+        var getLenght = this.utile.getLenght;
+        switch(action){
+            case 0 :
+                opts.x1 =opts.x2 ||  opts.x1; //当opts.x2=0时说明第一个触点未移动 ，则初始值未x1 反之则为x2
+                opts.y1 =opts.y2 ||  opts.y1;
+                opts.x3 = touchTwo.pageX;
+                opts.y3 = touchTwo.pageY;
+                opts.lenght1 =  getLenght(opts.x1,opts.x3,opts.y1,opts.y3);
+                opts.lenght2 = 0;
+                opts.transStart = this.utile.getMatrix(opts.el);
+                break;
+            case 1 :
+                opts.x2 = touchOne.pageX;
+                opts.y2 = touchOne.pageY;
+                opts.x4 = touchTwo.pageX;
+                opts.y4 = touchTwo.pageY;
+                opts.lenght2 = getLenght(opts.x2, opts.x4, opts.y2, opts.y4);
+                opts.transList[0] = (opts.lenght2 / opts.lenght1) * opts.transStart[0];
+                this.move(opts.transList);
+                break;
+            case 2 :
+                var flag = false;
+                opts.transList = this.utile.getMatrix(opts.el);
+                var hScale = this.height/this.imgH,
+                    wScale = this.width/this.imgW,
+                    minScale = hScale > wScale ? hScale : wScale;
+                if (opts.transList[0] < minScale) {
+                    opts.transList[0] = minScale;
+                    flag = true;
+                }
+                flag && this.move(opts.transList,600);
+                break;
+        }
+    },
+
+     mainfilter:function(action,e,opts){
+         e.preventDefault();
+         e.stopPropagation();
+         var lenght = e.targetTouches.length;
+         (action == 2) && (lenght+=1);
+         switch (lenght){
+             case 1 : return this.oneFingerFilter(action,e,opts);
+             case 2 : return this.twoFingerFilter(action,e,opts);
+             default:return;
+         }
+     },
     /**
      * 移动裁剪位置
      * @param el
      */
     addMove: function (el) {
-        var self = this, x1, y1, x2, y2, transList, style = el.querySelector('img').style;
+        var self = this,
+            opts =  {
+            x1:0,
+            y1:0,
+            x2:0,
+            y2:0,
+            transList:'',
+            el:el.querySelector('img')
+        };
         el.addEventListener('touchstart', function (e) {
-            var touchOne = e.targetTouches[0];
-            x1 = touchOne.pageX;
-            y1 = touchOne.pageY;
-            transList = !style.transform ? [0, 0, 0] : (style.transform.split('('))[1].split(',').map(function (item) {
-                return parseInt(item);
-            });
+            self.mainfilter.bind(self)(0,e,opts)
         });
         el.addEventListener('touchmove', function (e) {
-            e.preventDefault();
-            e.stopPropagation();
-            var lenght = e.targetTouches.length;
-            if (lenght == 1) {  //拖拽
-                var touchOne = e.targetTouches[0];
-                x2 = touchOne.pageX;
-                y2 = touchOne.pageY;
-                var movex = ~~(x2 - x1) + transList[0];
-                var movey = ~~(y2 - y1) + transList[1];
-                self.move(movex, movey);
-            }else if(lenght == 2){
-
-            }
+            self.mainfilter.bind(self)(1,e,opts)
         });
         el.addEventListener('touchend', function (e) {
-            var flag = false;
-            x1 = y1 = x2 = y2 = 0;
-            transList = !style.transform ? [0, 0, 0] : (style.transform.split('('))[1].split(',').map(function (item) {
-                return parseInt(item);
-            });
-            movex = transList[0];
-            movey = transList[1];
-            if (Math.abs(transList[0]) > self.maxX) {
-                var movex = transList[0] > 0 ? self.maxX : -self.maxX;
-                flag = true;
-            }
-            if (Math.abs(transList[1]) > self.maxY) {
-                var movey = transList[1] > 0 ? self.maxY : -self.maxY;
-                flag = true;
-            }
-            flag && self.move(movex, movey, 600);
+            self.mainfilter.bind(self)(2,e,opts)
         });
     },
     /**
@@ -1408,12 +1504,15 @@ ClipImg.prototype = {
      * @param movey
      * @param duration
      */
-    move: function (movex, movey, duration) {
-        var time = duration || 0;
-        var movStyle = document.getElementById('moveImg').style;
-        var backStyle = document.getElementById('backImg').style;
-        movStyle.transform = backStyle.transform = 'translate3d(' + movex + 'px,' + movey + 'px,0)';
-        movStyle['transition-duration'] = backStyle['transition-duration'] = time + 'ms';
+    move: function (transList, duration) {
+        transList[3]=  transList[0];
+        var time = duration || 0,
+            matrix = transList.join(','),
+            movStyle = document.getElementById('moveImg'),
+            backStyle = document.getElementById('backImg'),
+            transform = 'matrix('+ matrix + ')translateZ(0)',
+            transitionDuration = time + 'ms';
+        this.utile.css3style([movStyle,backStyle],{transitionDuration:transitionDuration,transform:transform, willChange:'transform',perspective: 1000,backfaceVisibility:'hidden'})
     },
     /**
      * 裁剪入口
@@ -1497,8 +1596,7 @@ ClipImg.prototype = {
             self.replaceFileInput();
             return dealFun({status: 5});
         }
-        self.maxX = (imgW - width) * targetDensitydpi / 2;
-        self.maxY = (imgH - height) * targetDensitydpi / 2;
+
         var img = createElement('img', {id: 'moveImg', src: url, width: imgW * targetDensitydpi + 'px'});
         var img2 = createElement('img', {id: 'backImg', src: url, width: imgW * targetDensitydpi + 'px'});
         var ClipImgTap = createElement('div', {'class': 'ClipImgTap'});
