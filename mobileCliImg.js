@@ -1375,9 +1375,9 @@ ClipImg.prototype = {
                 this.move(opts.transList);
                 break;
             case 2 :
+                opts.towFlag && this.twoFingerFilter(2,e,opts); //防止俩个手指头同时松手时触点二的end未执行
                 var flag = false;
                 opts.transList = this.utile.getMatrix(opts.el);
-
                 var maxX = (this.imgW*opts.transList[0] - this.width) * this.targetDensitydpi / 2,
                     maxY =(this.imgH*opts.transList[0] - this.height) * this.targetDensitydpi / 2;
                 if (Math.abs(opts.transList[4]) > maxX) {
@@ -1403,6 +1403,7 @@ ClipImg.prototype = {
         var getLenght = this.utile.getLenght;
         switch(action){
             case 0 :
+                opts.towFlag = true; //触点二标志，防止俩个手指头同时松手时触点二的end未执行
                 opts.x1 =opts.x2 ||  opts.x1; //当opts.x2=0时说明第一个触点未移动 ，则初始值未x1 反之则为x2
                 opts.y1 =opts.y2 ||  opts.y1;
                 opts.x3 = touchTwo.pageX;
@@ -1422,6 +1423,7 @@ ClipImg.prototype = {
                 break;
             case 2 :
                 var flag = false;
+                opts.towFlag = false; //触点二释放
                 opts.transList = this.utile.getMatrix(opts.el);
                 var hScale = this.height/this.imgH,
                     wScale = this.width/this.imgW,
