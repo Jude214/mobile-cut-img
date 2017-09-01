@@ -1255,6 +1255,8 @@ ClipImg.prototype = {
     cut: function () {
         var cutImgDateUrl, cutImgBlob,
             self = this,
+            img = document.querySelector('.ClipImgTap img'),
+            transform = this.utile.getMatrix(img),
             width = self.width,
             height = self.height,
             // rotate = self.rotate,
@@ -1262,17 +1264,13 @@ ClipImg.prototype = {
             utile = self.utile,
             canvas = utile.createElement('canvas', {width: width, height: height}),
             ctx = canvas.getContext('2d'),
-            img = document.querySelector('.ClipImgTap img'),
             // imgW = self.imgW,
             // imgH = self.imgH,
-            transform = !img.style.transform ? [0, 0, 0] : (img.style.transform.split('('))[1].split(',').map(function (item) {
-                return parseInt(item);
-            }),
-            // x = (imgW - width) / 2 - transform[0] / targetDensitydpi,
-            // y = (imgH - height) / 2 - transform[1] / targetDensitydpi,
-            params = self.ctxParams({moveX: transform[0], moveY: transform[1]});
-        // alert(JSON.stringify(params)+self.orientation);
+            params = self.ctxParams(transform);
+        console.log(params);
+        console.log(transform);
         params.rotate && ctx.rotate(params.rotate);
+        // ctx.scale(transform[0],transform[3]);
         ctx.drawImage(img, params.x, params.y, params.cutW, params.cutH, 0, 0, params.drawW, params.drawH);
         cutImgDateUrl = canvas.toDataURL(self.imgType);
         cutImgBlob = utile.dataURLtoBlob(cutImgDateUrl);
@@ -1287,16 +1285,17 @@ ClipImg.prototype = {
      */
     ctxParams: function (opts) {
         var self = this,
-            imgW = self.imgW,
+            scale= opts[0],
+            imgW = self.imgW*scale,
+            imgH = self.imgH*scale,
             rotate = self.rotate,
-            imgH = self.imgH,
-            cutW = self.width,
-            cutH = self.height,
-            drawW = cutW,
-            drawH = cutH,
+            drawW = self.height,
+            drawH =  self.width,
+            cutW = drawW/scale,
+            cutH = drawH/scale,
             targetDensitydpi = self.targetDensitydpi,
-            x = (imgW - cutW) / 2 - opts.moveX / targetDensitydpi,
-            y = (imgH - cutH) / 2 - opts.moveY / targetDensitydpi,
+            x = ((imgW - drawW) / 2 - opts[4]/ targetDensitydpi)/scale,
+            y = ((imgH - drawH) / 2 - opts[5]/ targetDensitydpi)/scale,
             aCutW = cutW,
             ax = x;
         switch (self.orientation) {
@@ -1361,11 +1360,14 @@ ClipImg.prototype = {
         var touchOne = e.targetTouches[0];
         switch(action){
             case 0 :
+                opts.oneFlag = true;
                 opts.x1 = touchOne.pageX;
                 opts.y1 = touchOne.pageY;
                 opts.transStart = this.utile.getMatrix(opts.el);
                 opts.transList = this.utile.getMatrix(opts.el);
-                console.log(this.utile.getMatrix(opts.el));
+                console.log( opts.transStart);
+                console.log(this.imgW);
+                console.log(this.imgH);
                 break;
             case 1 :
                 opts.x2 = touchOne.pageX;
@@ -1375,7 +1377,8 @@ ClipImg.prototype = {
                 this.move(opts.transList);
                 break;
             case 2 :
-                opts.towFlag && this.twoFingerFilter(2,e,opts); //防止俩个手指头同时松手时触点二的end未执行
+                opts.towFlag && this.twoFingerFilter(2,e,opts); //防止俩个手指头同时松手时触点二的end方法
+                opts.oneFlag = false;
                 var flag = false;
                 opts.transList = this.utile.getMatrix(opts.el);
                 var maxX = (this.imgW*opts.transList[0] - this.width) * this.targetDensitydpi / 2,
@@ -1389,6 +1392,7 @@ ClipImg.prototype = {
                     flag = true;
                 }
                 flag && this.move(opts.transList,600);
+                opts.x1= opts.y1 = opts.x2 = opts.y2 = opts.x3 = opts.y3 = opts.x4 = opts.y4 = 0;
                 break;
         }
     },
@@ -1403,6 +1407,7 @@ ClipImg.prototype = {
         var getLenght = this.utile.getLenght;
         switch(action){
             case 0 :
+                opts.oneFlag || this.oneFingerFilter(0,e,opts); //俩手同时按下时未执行x1的初始化，
                 opts.towFlag = true; //触点二标志，防止俩个手指头同时松手时触点二的end未执行
                 opts.x1 =opts.x2 ||  opts.x1; //当opts.x2=0时说明第一个触点未移动 ，则初始值未x1 反之则为x2
                 opts.y1 =opts.y2 ||  opts.y1;
@@ -1419,6 +1424,7 @@ ClipImg.prototype = {
                 opts.y4 = touchTwo.pageY;
                 opts.lenght2 = getLenght(opts.x2, opts.x4, opts.y2, opts.y4);
                 opts.transList[0] = (opts.lenght2 / opts.lenght1) * opts.transStart[0];
+                opts.transList[4] = opts.transList[5] = 0;
                 this.move(opts.transList);
                 break;
             case 2 :
@@ -1430,9 +1436,10 @@ ClipImg.prototype = {
                     minScale = hScale > wScale ? hScale : wScale;
                 if (opts.transList[0] < minScale) {
                     opts.transList[0] = minScale;
+                    opts.transList[4] = opts.transList[5] = 0;
                     flag = true;
                 }
-                flag && this.move(opts.transList,600);
+                flag &&   this.move(opts.transList,600);
                 break;
         }
     },
@@ -1514,7 +1521,7 @@ ClipImg.prototype = {
             backStyle = document.getElementById('backImg'),
             transform = 'matrix('+ matrix + ')translateZ(0)',
             transitionDuration = time + 'ms';
-        this.utile.css3style([movStyle,backStyle],{transitionDuration:transitionDuration,transform:transform, willChange:'transform',perspective: 1000,backfaceVisibility:'hidden'})
+        this.utile.css3style([movStyle,backStyle],{transitionDuration:transitionDuration,transform:transform, willChange:'transform',perspective: 1000,backfaceVisibility:'hidden',userSelect:'none',touchCallout:'none'})
     },
     /**
      * 裁剪入口
@@ -1598,7 +1605,6 @@ ClipImg.prototype = {
             self.replaceFileInput();
             return dealFun({status: 5});
         }
-
         var img = createElement('img', {id: 'moveImg', src: url, width: imgW * targetDensitydpi + 'px'});
         var img2 = createElement('img', {id: 'backImg', src: url, width: imgW * targetDensitydpi + 'px'});
         var ClipImgTap = createElement('div', {'class': 'ClipImgTap'});
